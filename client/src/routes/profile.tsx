@@ -1,8 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import Profile from "../components/profile";
-import { authCheck } from "../utils/authCheck";
 
 export const Route = createFileRoute("/profile")({
   component: Profile,
-  beforeLoad: authCheck,
+  loader: async ({ context }) => {
+    if (!context.isAuthenticated) {
+      try {
+        await context.refreshAuthToken();
+      } catch (error) {
+        redirect({
+          to: "/auth/login",
+          throw: true,
+        });
+      }
+    }
+  },
 });

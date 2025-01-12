@@ -1,30 +1,29 @@
 import { create } from "zustand";
-import { User } from "../services/types/user";
-import { persist } from "zustand/middleware";
+import { refreshAuthToken } from "../services/api/api";
 
 interface AuthState {
-  accessToken?: string | null;
-  user?: User | null;
-  setAccessToken: (token: string) => void;
-  setUser: (user: User) => void;
-  clearAccessToken: () => void;
-  clearUser: () => void;
-  clearAuthState: () => void;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+  refreshAuthToken: () => Promise<void>;
+  logout: () => void;
 }
 
-/*
-persist: default stores the data in localstorage
-*/
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      accessToken: null,
-      setAccessToken: (token) => set({ accessToken: token }),
-      setUser: (user) => set({ user }),
-      clearAccessToken: () => set({ accessToken: null }),
-      clearUser: () => set({ user: null }),
-      clearAuthState: () => set({ accessToken: null, user: null }),
-    }),
-    { name: "auth-storage" }
-  )
-);
+export const useAuthStore = create<AuthState>((set) => ({
+  accessToken: null,
+  isAuthenticated: false,
+  refreshAuthToken: async () => {
+    try {
+      const response = await refreshAuthToken();
+      set({
+        accessToken: response.data.access_token,
+        isAuthenticated: true,
+      });
+    } catch (error) {
+      set({ accessToken: null, isAuthenticated: false });
+      throw error;
+    }
+  },
+  logout: () => {
+    set({ accessToken: null, isAuthenticated: false });
+  },
+}));
