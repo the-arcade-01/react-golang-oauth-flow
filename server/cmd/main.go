@@ -1,7 +1,14 @@
 package main
 
-import "log"
+import (
+	"net/http"
+
+	"github.com/the-arcade-01/auth-flow/server/internal/api"
+	"github.com/the-arcade-01/auth-flow/server/internal/utils"
+)
 
 func main() {
-	log.Println("Hello, World")
+	server := api.NewServer()
+	utils.Log.Info("server running on port", "value", ":8080")
+	http.ListenAndServe(":8080", server.Router)
 }
