@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// TODO: request body validation remaining
+
 type ErrorResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
@@ -23,7 +25,7 @@ type RegisterUserReqBody struct {
 	Password string `json:"password"`
 }
 
-type RegisterUserResposne struct {
+type RegisterUserResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
 }
@@ -50,7 +52,7 @@ type LogoutResponse struct {
 }
 
 func ResponseWithJSON(w http.ResponseWriter, status int, payload interface{}) {
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(payload)
 }

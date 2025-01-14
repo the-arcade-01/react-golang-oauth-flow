@@ -43,6 +43,7 @@ func newDBClient() (*sql.DB, error) {
 		utils.Log.Error("error on pinging db", "error", err)
 		return nil, err
 	}
+	utils.Log.Info("db connection established", "function", "newDBClient")
 	return db, err
 }
 

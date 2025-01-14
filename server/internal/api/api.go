@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"github.com/the-arcade-01/auth-flow/server/internal/config"
 	"github.com/the-arcade-01/auth-flow/server/internal/handlers"
 	"github.com/the-arcade-01/auth-flow/server/internal/utils"
@@ -35,18 +36,18 @@ func (s *Server) mountMiddlewares() {
 func (s *Server) mountHandlers() {
 	appConfig := config.NewAppConfig()
 	handlers := handlers.NewHandlers()
-	s.Router.Get("/", handlers.Greet)
+	s.Router.Get("/greet", handlers.Greet)
 	s.Router.Post("/login", handlers.Login)
 	s.Router.Post("/register", handlers.Register)
+	s.Router.Post("/refresh-token", handlers.GenerateAuthTokens)
 	s.Router.Group(func(r chi.Router) {
 		r.Use(jwtauth.Verifier(appConfig.AuthToken))
 		r.Use(jwtauth.Authenticator(appConfig.AuthToken))
 
 		r.Post("/logout", handlers.Logout)
-		r.Post("/refresh-token", handlers.GenerateRefreshToken)
-		r.Delete("/refresh-token", handlers.DeleteRefreshToken)
-		r.Get("/users/:userId", handlers.GetUserById)
+		r.Get("/users/me", handlers.GetCurrentUser)
 	})
+	s.Router.Get("/swagger/*", httpSwagger.WrapHandler)
 }
 
 func NewServer() *Server {
@@ -63,6 +64,7 @@ func requestLogger(next http.Handler) http.Handler {
 		start := time.Now()
 		ms := time.Since(start).Milliseconds()
 
+		next.ServeHTTP(w, r)
 		utils.Log.Info("rtt",
 			"method", r.Method,
 			"url", r.URL.String(),
