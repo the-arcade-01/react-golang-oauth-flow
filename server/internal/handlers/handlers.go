@@ -46,7 +46,7 @@ func (h *Handlers) Greet(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	var body *models.LoginUserReqBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		models.ResponseWithJSON(w, http.StatusBadRequest, &models.ErrorResponse{Status: http.StatusBadRequest, Message: "Please provide correct details"})
+		models.ResponseWithJSON(w, http.StatusBadRequest, &models.ErrorResponse{Status: http.StatusBadRequest, Error: "Please provide correct details"})
 		return
 	}
 	defer r.Body.Close()
@@ -72,7 +72,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 	var body *models.RegisterUserReqBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		models.ResponseWithJSON(w, http.StatusBadRequest, &models.ErrorResponse{Status: http.StatusBadRequest, Message: "Please provide correct details"})
+		models.ResponseWithJSON(w, http.StatusBadRequest, &models.ErrorResponse{Status: http.StatusBadRequest, Error: "Please provide correct details"})
 		return
 	}
 	defer r.Body.Close()
@@ -96,7 +96,7 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) GenerateAuthTokens(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
-		models.ResponseWithJSON(w, http.StatusUnauthorized, &models.ErrorResponse{Status: http.StatusBadRequest, Message: "Please login again"})
+		models.ResponseWithJSON(w, http.StatusUnauthorized, &models.ErrorResponse{Status: http.StatusBadRequest, Error: "Please login again"})
 		return
 	}
 
@@ -137,8 +137,8 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Path:     "/",
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   false, // TODO: change for production
+		SameSite: http.SameSiteNoneMode,
 	})
 	models.ResponseWithJSON(w, result.Status, result)
 }
@@ -171,21 +171,21 @@ func (h *Handlers) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 func validateAuthToken(r *http.Request) (int, *models.ErrorResponse) {
 	_, claims, err := jwtauth.FromContext(r.Context())
 	if err != nil {
-		return -1, &models.ErrorResponse{Status: http.StatusUnauthorized, Message: "User unauthorized, please login again"}
+		return -1, &models.ErrorResponse{Status: http.StatusUnauthorized, Error: "User unauthorized, please login again"}
 	}
 	if _, ok := claims["userId"]; !ok {
-		return -1, &models.ErrorResponse{Status: http.StatusUnauthorized, Message: "User unauthorized, please login again"}
+		return -1, &models.ErrorResponse{Status: http.StatusUnauthorized, Error: "User unauthorized, please login again"}
 	}
 	if _, ok := claims["exp"]; !ok {
-		return -1, &models.ErrorResponse{Status: http.StatusUnauthorized, Message: "User unauthorized, please login again"}
+		return -1, &models.ErrorResponse{Status: http.StatusUnauthorized, Error: "User unauthorized, please login again"}
 	}
 	userId := int(claims["userId"].(float64))
 	expTime := claims["exp"].(time.Time).Unix()
 
 	if expTime < time.Now().Unix() {
 		return -1, &models.ErrorResponse{
-			Status:  http.StatusUnauthorized,
-			Message: "token has expired",
+			Status: http.StatusUnauthorized,
+			Error:  "token has expired",
 		}
 	}
 

@@ -9,8 +9,8 @@ import (
 // TODO: request body validation remaining
 
 type ErrorResponse struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
+	Status int    `json:"status"`
+	Error  string `json:"error"`
 }
 
 type User struct {

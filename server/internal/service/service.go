@@ -23,7 +23,7 @@ func (api *ApiService) Login(w http.ResponseWriter, ctx context.Context, body *m
 	user := &models.User{Email: body.Email, Password: body.Password}
 	accessToken, refreshToken, status, err := api.repo.LoginUser(ctx, user)
 	if err != nil {
-		return nil, &models.ErrorResponse{Status: status, Message: err.Error()}
+		return nil, &models.ErrorResponse{Status: status, Error: err.Error()}
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -32,7 +32,7 @@ func (api *ApiService) Login(w http.ResponseWriter, ctx context.Context, body *m
 		HttpOnly: true,
 		Path:     "/",   // TODO: after testing change this to specific path
 		Secure:   false, //TODO: need to change after deployment
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
@@ -50,7 +50,7 @@ func (api *ApiService) Register(ctx context.Context, body *models.RegisterUserRe
 	user := &models.User{Email: body.Email, Password: body.Password}
 	status, err := api.repo.RegisterUser(ctx, user)
 	if err != nil {
-		return nil, &models.ErrorResponse{Status: status, Message: err.Error()}
+		return nil, &models.ErrorResponse{Status: status, Error: err.Error()}
 	}
 	return &models.RegisterUserResponse{Status: status, Message: "User registered successfully"}, nil
 }
@@ -58,7 +58,7 @@ func (api *ApiService) Register(ctx context.Context, body *models.RegisterUserRe
 func (api *ApiService) GenerateAuthTokens(w http.ResponseWriter, ctx context.Context, refreshToken string) (*models.LoginUserResponse, *models.ErrorResponse) {
 	accessToken, refreshToken, status, err := api.repo.GenerateAuthTokens(ctx, refreshToken)
 	if err != nil {
-		return nil, &models.ErrorResponse{Status: status, Message: err.Error()}
+		return nil, &models.ErrorResponse{Status: status, Error: err.Error()}
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -67,7 +67,7 @@ func (api *ApiService) GenerateAuthTokens(w http.ResponseWriter, ctx context.Con
 		HttpOnly: true,
 		Path:     "/",   // TODO: after testing change this to specific path
 		Secure:   false, //TODO: need to change after deployment
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
@@ -92,7 +92,7 @@ func (api *ApiService) Logout(ctx context.Context, userId int) (*models.LogoutRe
 func (api *ApiService) GetUserById(ctx context.Context, userId int) (*models.UserResponse, *models.ErrorResponse) {
 	user, status, err := api.repo.GetUserById(ctx, userId)
 	if err != nil {
-		return nil, &models.ErrorResponse{Status: status, Message: err.Error()}
+		return nil, &models.ErrorResponse{Status: status, Error: err.Error()}
 	}
 	return &models.UserResponse{Status: status, Data: user}, nil
 }
