@@ -62,9 +62,9 @@ func NewServer() *Server {
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		ms := time.Since(start).Milliseconds()
-
 		next.ServeHTTP(w, r)
+
+		ms := time.Since(start).Milliseconds()
 		utils.Log.Info("rtt",
 			"method", r.Method,
 			"url", r.URL.String(),

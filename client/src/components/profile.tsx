@@ -1,8 +1,9 @@
-import { useAuthStore } from "../store/authStore";
-
 const Profile = () => {
-  const token = useAuthStore((state) => state.accessToken);
-  return <div>Hi! {token}</div>;
+  return (
+    <div>
+      <h1>Profile</h1>
+    </div>
+  );
 };
 
 export default Profile;

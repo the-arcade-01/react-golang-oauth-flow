@@ -1,4 +1,4 @@
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 import React from "react";
 import { Toaster } from "react-hot-toast";
 
@@ -11,13 +11,7 @@ const TanStackRouterDevtools =
         }))
       );
 
-export interface AuthContext {
-  accessToken: string | null;
-  isAuthenticated: boolean;
-  refreshAuthToken: () => Promise<void>;
-}
-
-export const Route = createRootRouteWithContext<AuthContext>()({
+export const Route = createRootRoute({
   component: () => {
     return (
       <div>

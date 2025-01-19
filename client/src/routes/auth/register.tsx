@@ -1,6 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SubmitHandler, useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export const Route = createFileRoute("/auth/register")({
   component: RegisterForm,
@@ -14,23 +16,30 @@ const registerFormSchema = z.object({
 type RegisterFormType = z.infer<typeof registerFormSchema>;
 
 function RegisterForm() {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { isSubmitting, errors },
-  } = useForm<RegisterFormType>();
+  } = useForm<RegisterFormType>({
+    resolver: zodResolver(registerFormSchema),
+  });
 
   const onSubmit: SubmitHandler<RegisterFormType> = async (data) => {
-    await new Promise((resolver) => setTimeout(resolver, 1000));
-    console.log(data);
-    reset();
+    try {
+      toast.success("success");
+      navigate({
+        to: "/auth/login",
+      });
+    } catch (error) {
+      toast.error("An unexpected error occurred. Please try again later.");
+    }
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen">
       <form
-        className="w-1/4 p-6 rounded-lg shadow-md bg-white"
+        className="lg:w-1/4 sm:w-1/2 p-6 rounded-lg shadow-md bg-white"
         onSubmit={handleSubmit(onSubmit)}
       >
         <p className="text-lg font-semibold text-center">Welcome on board!</p>

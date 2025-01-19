@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
+import toast from "react-hot-toast";
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginForm,
@@ -15,25 +16,27 @@ const loginFormSchema = z.object({
 type LoginFormType = z.infer<typeof loginFormSchema>;
 
 function LoginForm() {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormType>({
     resolver: zodResolver(loginFormSchema),
   });
 
   const onSubmit: SubmitHandler<LoginFormType> = async (data) => {
-    await new Promise((resolver) => setTimeout(resolver, 1000));
-    console.log(data);
-    reset();
+    try {
+      toast.success("Login successful");
+      navigate({ to: "/" });
+    } catch (error) {
+      toast.error("An unexpected error occurred. Please try again later.");
+    }
   };
-
   return (
     <div className="flex justify-center items-center min-h-screen">
       <form
-        className="w-1/4 p-6 rounded-lg shadow-md bg-white"
+        className="lg:w-1/4 sm:w-1/2 p-6 rounded-lg shadow-md bg-white"
         onSubmit={handleSubmit(onSubmit)}
       >
         <p className="text-lg font-semibold text-center">Welcome back!</p>
