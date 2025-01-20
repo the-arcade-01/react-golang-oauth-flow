@@ -96,7 +96,7 @@ func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) GenerateAuthTokens(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
-		models.ResponseWithJSON(w, http.StatusUnauthorized, &models.ErrorResponse{Status: http.StatusBadRequest, Error: "Please login again"})
+		models.ResponseWithJSON(w, http.StatusUnauthorized, &models.ErrorResponse{Status: http.StatusUnauthorized, Error: "Please login again"})
 		return
 	}
 
@@ -136,7 +136,6 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		Path:     "/",
 		Secure:   false, // TODO: change for production
 		SameSite: http.SameSiteNoneMode,
 	})

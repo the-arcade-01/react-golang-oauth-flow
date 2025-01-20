@@ -30,7 +30,6 @@ func (api *ApiService) Login(w http.ResponseWriter, ctx context.Context, body *m
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		HttpOnly: true,
-		Path:     "/",   // TODO: after testing change this to specific path
 		Secure:   false, //TODO: need to change after deployment
 		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour),
@@ -65,7 +64,6 @@ func (api *ApiService) GenerateAuthTokens(w http.ResponseWriter, ctx context.Con
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		HttpOnly: true,
-		Path:     "/",   // TODO: after testing change this to specific path
 		Secure:   false, //TODO: need to change after deployment
 		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour),

@@ -23,9 +23,9 @@ func (s *Server) mountMiddlewares() {
 	s.Router.Use(requestLogger)
 	s.Router.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
-		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedOrigins: []string{"http://localhost:5173"},
 		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link", "Set-Cookie"},
 		AllowCredentials: true,
@@ -62,7 +62,9 @@ func NewServer() *Server {
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
+
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
 
 		ms := time.Since(start).Milliseconds()
 		utils.Log.Info("rtt",
@@ -71,6 +73,17 @@ func requestLogger(next http.Handler) http.Handler {
 			"remote_addr", r.RemoteAddr,
 			"user_agent", r.UserAgent(),
 			"ms", ms,
+			"status", rec.status,
 		)
 	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rec *statusRecorder) WriteHeader(status int) {
+	rec.status = status
+	rec.ResponseWriter.WriteHeader(status)
 }
