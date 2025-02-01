@@ -2,51 +2,31 @@ package config
 
 import (
 	"database/sql"
-	"os"
 	"sync"
 
-	"github.com/go-chi/jwtauth/v5"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/the-arcade-01/auth-flow/server/internal/utils"
+	"golang.org/x/oauth2"
 )
 
-var once = sync.Once{}
-var config *AppConfig
+var once sync.Once
+var appConfig *AppConfig
 
 type AppConfig struct {
-	DbClient  *sql.DB
-	AuthToken *jwtauth.JWTAuth
+	DBClient *sql.DB
+	OauthCfg *oauth2.Config
 }
 
-func NewAppConfig() *AppConfig {
+func New() *AppConfig {
 	once.Do(func() {
-		config = &AppConfig{}
+		appConfig = &AppConfig{
+			OauthCfg: newOauthConfig(),
+		}
 		db, err := newDBClient()
 		if err != nil {
+			// TODO: change this to graceful shutdown
 			panic(err)
 		}
-		config.DbClient = db
-		config.AuthToken = generateAuthToken()
+		appConfig.DBClient = db
+
 	})
-	return config
-}
-
-func newDBClient() (*sql.DB, error) {
-	db, err := sql.Open(os.Getenv("DRIVER_NAME"), os.Getenv("DB_URL"))
-	db.SetMaxIdleConns(5)
-	db.SetMaxOpenConns(10)
-	if err != nil {
-		utils.Log.Error("error establishing db conn", "error", err)
-		return nil, err
-	}
-	if err := db.Ping(); err != nil {
-		utils.Log.Error("error on pinging db", "error", err)
-		return nil, err
-	}
-	utils.Log.Info("db connection established", "function", "newDBClient")
-	return db, err
-}
-
-func generateAuthToken() *jwtauth.JWTAuth {
-	return jwtauth.New("HS256", []byte(os.Getenv("JWT_SECRET_KEY")), nil)
+	return appConfig
 }

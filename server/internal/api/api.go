@@ -1,17 +1,19 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
+	"server/internal/config"
+	"server/internal/handlers"
+	"server/internal/models"
+	"server/internal/utils"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/jwtauth/v5"
-	httpSwagger "github.com/swaggo/http-swagger"
-	"github.com/the-arcade-01/auth-flow/server/internal/config"
-	"github.com/the-arcade-01/auth-flow/server/internal/handlers"
-	"github.com/the-arcade-01/auth-flow/server/internal/utils"
+	"golang.org/x/oauth2"
 )
 
 type Server struct {
@@ -20,34 +22,35 @@ type Server struct {
 
 func (s *Server) mountMiddlewares() {
 	s.Router.Use(middleware.Heartbeat("/ping"))
+	s.Router.Use(middleware.Recoverer)
+	s.Router.Use(middleware.Timeout(1 * time.Minute))
 	s.Router.Use(requestLogger)
 	s.Router.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
-		AllowedOrigins: []string{"http://localhost:5173"},
+		AllowedOrigins: []string{config.Envs.APP_WEB_URL},
 		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link", "Set-Cookie"},
+		ExposedHeaders:   []string{"Set-Cookie"},
 		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		MaxAge:           300,
 	}))
 }
 
 func (s *Server) mountHandlers() {
-	appConfig := config.NewAppConfig()
-	handlers := handlers.NewHandlers()
-	s.Router.Get("/greet", handlers.Greet)
-	s.Router.Post("/login", handlers.Login)
-	s.Router.Post("/register", handlers.Register)
-	s.Router.Post("/refresh-token", handlers.GenerateAuthTokens)
-	s.Router.Group(func(r chi.Router) {
-		r.Use(jwtauth.Verifier(appConfig.AuthToken))
-		r.Use(jwtauth.Authenticator(appConfig.AuthToken))
-
-		r.Post("/logout", handlers.Logout)
-		r.Get("/users/me", handlers.GetCurrentUser)
+	authHandlers := handlers.NewAuthHandlers()
+	authRouter := chi.NewRouter()
+	authRouter.Get("/", authHandlers.Greet)
+	authRouter.Get("/login", authHandlers.Login)
+	authRouter.Get("/callback", authHandlers.Callback)
+	authRouter.Post("/refresh-token", authHandlers.RefreshToken)
+	authRouter.Group(func(r chi.Router) {
+		r.Use(validateRequestToken)
+		r.Get("/protected", authHandlers.Protected)
+		r.Post("/logout", authHandlers.Logout)
+		r.Get("/user/me", authHandlers.FetchUser)
 	})
-	s.Router.Get("/swagger/*", httpSwagger.WrapHandler)
+	s.Router.Mount("/api/auth", authRouter)
 }
 
 func NewServer() *Server {
@@ -59,11 +62,39 @@ func NewServer() *Server {
 	return s
 }
 
+func validateRequestToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		accessTokenCookie, err := r.Cookie("access_token")
+		if err != nil || accessTokenCookie.Value == "" {
+			models.ResponseWithJSON(w, http.StatusUnauthorized, &models.Response{Success: false, Status: http.StatusUnauthorized, Message: "Access token is missing"})
+			return
+		}
+
+		client := config.New().OauthCfg.Client(context.Background(), &oauth2.Token{
+			AccessToken: accessTokenCookie.Value,
+		})
+
+		res, err := client.Get(config.Envs.GOOGLE_USER_INFO)
+		if err != nil || res.StatusCode != http.StatusOK {
+			models.ResponseWithJSON(w, http.StatusUnauthorized, &models.Response{Success: false, Status: http.StatusUnauthorized, Message: "Invalid Access token"})
+			return
+		}
+		defer res.Body.Close()
+
+		var userInfo map[string]string
+		json.NewDecoder(res.Body).Decode(&userInfo)
+
+		ctx := context.WithValue(r.Context(), utils.UserInfoKey, userInfo)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-
-		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		rec := &statusRecorder{ResponseWriter: w}
 		next.ServeHTTP(rec, r)
 
 		ms := time.Since(start).Milliseconds()
@@ -83,7 +114,7 @@ type statusRecorder struct {
 	status int
 }
 
-func (rec *statusRecorder) WriteHeader(status int) {
-	rec.status = status
-	rec.ResponseWriter.WriteHeader(status)
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
 }
