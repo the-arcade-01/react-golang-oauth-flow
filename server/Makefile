@@ -3,3 +3,9 @@ build:
 
 run:build
 	@bin/main
+
+docker-build:
+	@docker compose build
+
+docker-up:
+	@docker compose up
