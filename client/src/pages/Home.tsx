@@ -23,6 +23,15 @@ const Home = () => {
             Login with Google
           </button>
         )}
+        <div className="mt-4">
+          <Link to="/privacy" className="text-blue-500 hover:underline">
+            Privacy Policy
+          </Link>
+          <span className="mx-2">|</span>
+          <Link to="/terms" className="text-blue-500 hover:underline">
+            Terms of Service
+          </Link>
+        </div>
       </div>
     </div>
   );
