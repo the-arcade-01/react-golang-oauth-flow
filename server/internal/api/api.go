@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"golang.org/x/oauth2"
 )
 
@@ -35,6 +36,7 @@ func (s *Server) mountMiddlewares() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	s.Router.Use(httprate.LimitByIP(5, 1*time.Minute))
 }
 
 func (s *Server) mountHandlers() {
